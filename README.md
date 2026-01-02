@@ -75,5 +75,3 @@ The API predicts house prices and also provides **geographical context** of the 
 
 ---
 
-## 📁 Project Structure
-
