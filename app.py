@@ -1,49 +1,62 @@
 import streamlit as st
 import requests
+import pandas as pd
 
-st.title("California House Price Prediction")
-st.sidebar.header("Input Features")
+st.set_page_config(page_title="Real Estate AI", layout="wide")
 
-# Sidebar inputs
-med_inc = st.sidebar.number_input("Median Income", value=3.5)
-house_age = st.sidebar.number_input("House Age", value=20.0)
-ave_rooms = st.sidebar.number_input("Average Rooms", value=5.0)
-ave_bedrms = st.sidebar.number_input("Average Bedrooms", value=1.0)
-population = st.sidebar.number_input("Population", value=1000.0)
-ave_occup = st.sidebar.number_input("Average Occupancy", value=3.0)
-latitude = st.sidebar.number_input("Latitude", value=34.0)
-longitude = st.sidebar.number_input("Longitude", value=-118.0)
+st.title("🏡 California Housing Intelligence")
 
-if st.button("Get Prediction"):
-    # FIX 1: Capitalize keys to match FastAPI/Model
-    input_data = {
-        "MedInc": med_inc,
-        "HouseAge": house_age,
-        "AveRooms": ave_rooms,
-        "AveBedrms": ave_bedrms,
-        "Population": population,
-        "AveOccup": ave_occup,
-        "Latitude": latitude,
-        "Longitude": longitude
-    }
-    
+# --- SIDEBAR: USER INPUTS ---
+with st.sidebar:
+    st.header("Property Details")
+    med_inc = st.number_input("Median Income (x$10k)", 0.5, 15.0, 3.5)
+    house_age = st.slider("House Age (Years)", 1, 52, 25)
+    ave_rooms = st.number_input("Average Rooms", 1.0, 10.0, 5.0)
+    ave_bedrms = st.number_input("Average Bedrooms", 1.0, 5.0, 1.0)
+    population = st.number_input("Area Population", 3, 35000, 1000)
+    ave_occup = st.number_input("Avg Occupancy", 1.0, 6.0, 3.0)
+    lat = st.number_input("Latitude", 32.0, 42.0, 34.2)
+    lon = st.number_input("Longitude", -124.0, -114.0, -118.4)
+
+# --- PAYLOAD CONSTRUCTION ---
+payload = {
+    "MedInc": med_inc,
+    "HouseAge": house_age,
+    "AveRooms": ave_rooms,
+    "AveBedrms": ave_bedrms,
+    "Population": population,
+    "AveOccup": ave_occup,
+    "Latitude": lat,
+    "Longitude": lon
+}
+
+# --- API CALL ---
+if st.button("Generate AI Prediction"):
     try:
-        response = requests.post("http://127.0.0.1:8000/predict", json=input_data)
+        response = requests.post("http://127.0.0.1:8000/predict_and_search", json=payload)
         
         if response.status_code == 200:
-            # FIX 2: Match the key returned by the API
-            prediction = response.json()['Predicted_Price']
-
-            st.success(f"The Predicted House Price is: ${prediction*100000:,.2f}")
-
-            avg_price = 2.06
-            col1, col2 = st.columns(2)
+            data = response.json()
             
-            # FIX 3: Fixed the format string (changed :,0.f to :,.0f)
-            col1.metric("Your Prediction", f"${prediction*100:,.0f}k")
-            col2.metric("Average Price", f"${avg_price*100:,.0f}k")
-        else:
-            st.error(f"API Error: {response.text}")
+            # Display Prediction
+            st.metric("Predicted Market Value", f"${data['predicted_price']:,.2f}k")
 
+            # Display Map & Data Table
+            if "suggested_locations" in data:
+                df = pd.DataFrame(data["suggested_locations"])
+                
+                # IMPORTANT: Rename columns for st.map compatibility
+                map_df = df.rename(columns={"Latitude": "latitude", "Longitude": "longitude"})
+                
+                c1, c2 = st.columns([1, 1])
+                with c1:
+                    st.subheader("📍 Recommended Areas")
+                    st.map(map_df)
+                with c2:
+                    st.subheader("📋 Coordinates List")
+                    st.dataframe(df, use_container_width=True)
+        else:
+            st.error("Backend Error: Check if main.py is running.")
+            
     except Exception as e:
         st.error(f"Could not connect to API: {e}")
