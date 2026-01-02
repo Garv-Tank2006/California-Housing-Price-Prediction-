@@ -54,7 +54,7 @@ if st.button("Generate AI Prediction"):
                     st.map(map_df)
                 with c2:
                     st.subheader("📋 Coordinates List")
-                    st.dataframe(df, use_container_width=True)
+                    st.dataframe(df, width="stretch")
         else:
             st.error("Backend Error: Check if main.py is running.")
             
