@@ -33,7 +33,7 @@ payload = {
 # --- API CALL ---
 if st.button("Generate AI Prediction"):
     try:
-        response = requests.post("http://127.0.0.1:8000/predict_and_search", json=payload)
+        response = requests.post("http://backend:8000/predict_and_search", json=payload)
         
         if response.status_code == 200:
             data = response.json()

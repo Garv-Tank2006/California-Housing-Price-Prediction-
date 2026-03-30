@@ -1,4 +1,31 @@
+# ML model files
 *.pkl
+*.joblib
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Environment variables
+.env
+
+# System / OS
+.DS_Store
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Docker / K8s binaries (VERY IMPORTANT)
+kubectl
+minikube-linux-amd64
+
+# Scripts
+get-docker.sh
+
+# Logs
+*.log*.pkl
 *.joblib
 __pycache__/
 .venv/
