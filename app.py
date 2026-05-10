@@ -4,8 +4,10 @@ import pandas as pd
 import os
 
 st.set_page_config(page_title="Real Estate AI", layout="wide")
-
 st.title("🏡 California Housing Intelligence")
+
+# --- BACKEND URL --- (reads from environment variable)
+BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8000")
 
 # --- SIDEBAR: USER INPUTS ---
 with st.sidebar:
@@ -31,26 +33,20 @@ payload = {
     "Longitude": lon
 }
 
+# --- DEBUG: Show backend URL (remove after fixing) ---
+st.sidebar.write(f"🔗 Backend: {BACKEND_URL}")
+
 # --- API CALL ---
 if st.button("Generate AI Prediction"):
     try:
-        
-        BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8000")
         response = requests.post(f"{BACKEND_URL}/predict_and_search", json=payload)
-        
+        st.write(f"Status Code: {response.status_code}")  # debug line
         if response.status_code == 200:
             data = response.json()
-            
-            # Display Prediction
             st.metric("Predicted Market Value", f"${data['predicted_price']:,.2f}k")
-
-            # Display Map & Data Table
             if "suggested_locations" in data:
                 df = pd.DataFrame(data["suggested_locations"])
-                
-                # IMPORTANT: Rename columns for st.map compatibility
                 map_df = df.rename(columns={"Latitude": "latitude", "Longitude": "longitude"})
-                
                 c1, c2 = st.columns([1, 1])
                 with c1:
                     st.subheader("📍 Recommended Areas")
@@ -59,7 +55,6 @@ if st.button("Generate AI Prediction"):
                     st.subheader("📋 Coordinates List")
                     st.dataframe(df, width="stretch")
         else:
-            st.error("Backend Error: Check if main.py is running.")
-            
+            st.error(f"Backend Error: Status {response.status_code} - {response.text}")
     except Exception as e:
         st.error(f"Could not connect to API: {e}")
