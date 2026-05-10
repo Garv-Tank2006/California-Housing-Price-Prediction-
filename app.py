@@ -1,6 +1,7 @@
 import streamlit as st
 import requests
 import pandas as pd
+import os
 
 st.set_page_config(page_title="Real Estate AI", layout="wide")
 
@@ -33,7 +34,9 @@ payload = {
 # --- API CALL ---
 if st.button("Generate AI Prediction"):
     try:
-        response = requests.post("http://backend:8000/predict_and_search", json=payload)
+        
+        BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8000")
+        response = requests.post(f"{BACKEND_URL}/predict_and_search", json=payload)
         
         if response.status_code == 200:
             data = response.json()
