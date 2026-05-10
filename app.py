@@ -2,14 +2,14 @@ import streamlit as st
 import requests
 import pandas as pd
 import os
+import folium
+from streamlit_folium import st_folium
 
 st.set_page_config(page_title="Real Estate AI", layout="wide")
 st.title("🏡 California Housing Intelligence")
 
-# --- BACKEND URL --- (reads from environment variable)
 BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8000")
 
-# --- SIDEBAR: USER INPUTS ---
 with st.sidebar:
     st.header("Property Details")
     med_inc = st.number_input("Median Income (x$10k)", 0.5, 15.0, 3.5)
@@ -21,7 +21,6 @@ with st.sidebar:
     lat = st.number_input("Latitude", 32.0, 42.0, 34.2)
     lon = st.number_input("Longitude", -124.0, -114.0, -118.4)
 
-# --- PAYLOAD CONSTRUCTION ---
 payload = {
     "MedInc": med_inc,
     "HouseAge": house_age,
@@ -33,28 +32,40 @@ payload = {
     "Longitude": lon
 }
 
-# --- DEBUG: Show backend URL (remove after fixing) ---
-st.sidebar.write(f"🔗 Backend: {BACKEND_URL}")
-
-# --- API CALL ---
 if st.button("Generate AI Prediction"):
     try:
-        response = requests.post(f"{BACKEND_URL}/predict_and_search", json=payload)
-        st.write(f"Status Code: {response.status_code}")  # debug line
+        response = requests.post(
+            f"{BACKEND_URL}/predict_and_search",
+            json=payload
+        )
         if response.status_code == 200:
             data = response.json()
             st.metric("Predicted Market Value", f"${data['predicted_price']:,.2f}k")
             if "suggested_locations" in data:
                 df = pd.DataFrame(data["suggested_locations"])
-                map_df = df.rename(columns={"Latitude": "latitude", "Longitude": "longitude"})
+
                 c1, c2 = st.columns([1, 1])
                 with c1:
                     st.subheader("📍 Recommended Areas")
-                    st.map(map_df)
+                    # Create Folium map
+                    m = folium.Map(
+                        location=[df["Latitude"].mean(), df["Longitude"].mean()],
+                        zoom_start=11,
+                        tiles="OpenStreetMap"
+                    )
+                    # Add markers for each location
+                    for _, row in df.iterrows():
+                        folium.Marker(
+                            location=[row["Latitude"], row["Longitude"]],
+                            popup=f"Lat: {row['Latitude']:.4f}, Lon: {row['Longitude']:.4f}",
+                            icon=folium.Icon(color="red", icon="home")
+                        ).add_to(m)
+                    st_folium(m, width=500, height=400)
+
                 with c2:
                     st.subheader("📋 Coordinates List")
-                    st.dataframe(df, width="stretch")
+                    st.dataframe(df, use_container_width=True)
         else:
-            st.error(f"Backend Error: Status {response.status_code} - {response.text}")
+            st.error(f"Backend Error: {response.status_code}")
     except Exception as e:
         st.error(f"Could not connect to API: {e}")

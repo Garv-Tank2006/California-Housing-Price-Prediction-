@@ -7,3 +7,6 @@ uvicorn
 requests
 joblib
 pydantic
+folium
+streamlit-folium
+EOF
